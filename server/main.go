@@ -29,8 +29,9 @@ func main() {
 	}))
 
 	// 5. Define Routes
-	r.Get("/submissions", h.GetSubmissions)
+	// r.Get("/submissions", h.GetSubmissions)
 	r.Get("/problems", h.GetProblems)
+	r.Get("/problems/{slug}/submissions", h.GetProblemSubmissions)
 
 	// 6. Start Server
 	log.Println("Server starting on :8080")
