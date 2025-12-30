@@ -12,7 +12,6 @@ func (h *Handler) GetSubmissions(w http.ResponseWriter, r *http.Request) {
 	query := `
 		SELECT id, problem_slug, user_handle, language, points 
 		FROM submissions 
-		LIMIT 5
 	`
 	rows, err := h.DB.Query(query)
 	if err != nil {
@@ -28,10 +27,12 @@ func (h *Handler) GetSubmissions(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var s models.Submission
 		// Scan directly into the struct fields
-		if err := rows.Scan(&s.ID, &s.ProblemSlug, &s.UserHandle, &s.Language, &s.Points); err != nil {
+		err := rows.Scan(&s.ID, &s.ProblemSlug, &s.UserHandle, &s.Language, &s.Points)
+		if err != nil {
 			log.Println("Scan Error:", err)
 			continue
 		}
+
 		submissions = append(submissions, s)
 	}
 

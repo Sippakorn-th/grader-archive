@@ -1,6 +1,5 @@
 package models
 
-// Submission represents a row from your database
 type Submission struct {
 	ID          string  `json:"id"`
 	ProblemSlug string  `json:"problem_slug"`

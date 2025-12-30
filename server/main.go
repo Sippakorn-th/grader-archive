@@ -30,6 +30,7 @@ func main() {
 
 	// 5. Define Routes
 	r.Get("/submissions", h.GetSubmissions)
+	r.Get("/problems", h.GetProblems)
 
 	// 6. Start Server
 	log.Println("Server starting on :8080")
