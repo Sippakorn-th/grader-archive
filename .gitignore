@@ -14,9 +14,33 @@
 /go.work.sum
 
 # =========================
-# Go module cache (optional)
+# Go module cache
 # =========================
 /vendor/
+
+# =========================
+# Node / Next.js
+# =========================
+node_modules/
+.next/
+out/
+
+# =========================
+# Environment variables
+# =========================
+.env
+.env.local
+.env.development
+.env.production
+
+# =========================
+# Logs
+# =========================
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
 # =========================
 # VS Code
@@ -29,16 +53,6 @@
 # =========================
 .DS_Store
 Thumbs.db
-
-# =========================
-# Logs
-# =========================
-*.log
-
-# =========================
-# Environment variables
-# =========================
-.env
 
 # =========================
 # Build folders (optional)
