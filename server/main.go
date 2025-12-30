@@ -33,6 +33,7 @@ func main() {
 	r.Get("/problems", h.GetProblems)
 	r.Get("/problems/{slug}", h.GetProblemBySlug)
 	r.Get("/problems/{slug}/submissions", h.GetProblemSubmissions)
+	r.Get("/submissions/{id}/testcases", h.GetSubmissionTestcases)
 
 	// 6. Start Server
 	log.Println("Server starting on :8080")

@@ -1,9 +1,10 @@
 import React from "react";
 
 export default function ResultDots({ result }: { result: string }) {
+  const cleanResult = result.replace(/[\[\]]/g, "");
   return (
-    <div className="flex gap-[2px]">
-      {result.split("").map((char, i) => {
+    <div className="flex gap-0.5">
+      {cleanResult.split("").map((char, i) => {
         let color = "bg-zinc-800"; // Default/Unknown
         if (char === "P")
           color = "bg-emerald-500 shadow-[0_0_4px_rgba(16,185,129,0.6)]";
