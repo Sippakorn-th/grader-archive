@@ -52,7 +52,7 @@ func (h *Handler) GetProblemSubmissions(w http.ResponseWriter, r *http.Request) 
 	// 2. Write the SQL Query with a placeholder ($1)
 	query := `
 		SELECT 
-			problem_slug, external_id, user_handle, language, 
+			id, problem_slug, external_id, user_handle, language, 
 			result_summary, points, memory_kb, runtime_sec, 
 			submitted_at, code_path, ai_analysis, tries
 		FROM submissions
@@ -75,7 +75,7 @@ func (h *Handler) GetProblemSubmissions(w http.ResponseWriter, r *http.Request) 
 		var s models.Submission
 		// The order here MUST match the SELECT order above
 		err := rows.Scan(
-			&s.Slug, &s.ExternalID, &s.UserHandle, &s.Language,
+			&s.ID, &s.Slug, &s.ExternalID, &s.UserHandle, &s.Language,
 			&s.ResultSummary, &s.Points, &s.MemoryKB, &s.RuntimeSec,
 			&s.SubmittedAt, &s.CodePath, &s.AIAnalysis, &s.Tries,
 		)

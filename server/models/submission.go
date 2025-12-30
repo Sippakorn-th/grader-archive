@@ -6,6 +6,7 @@ import (
 )
 
 type Submission struct {
+	ID            string           `json:"id"`
 	Slug          string           `json:"problem_slug"`
 	ExternalID    *string          `json:"external_id"`
 	UserHandle    *string          `json:"user_handle"`
