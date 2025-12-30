@@ -1,4 +1,4 @@
-module cp-archive-server
+module cp-archive
 
 go 1.25.5
 
