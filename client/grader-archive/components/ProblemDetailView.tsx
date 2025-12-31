@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Submission, ProblemDetail, TestCase } from "@/types";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
@@ -30,6 +30,9 @@ const TAG_DISPLAY_MAP: Record<string, string> = {
   "Linked List": "Linked List",
 };
 
+type SortKey = "date" | "score" | "runtime";
+type FilterType = "all" | "solved" | "unsolved";
+
 export default function ProblemDetailView({
   problem,
   submissions,
@@ -46,6 +49,11 @@ export default function ProblemDetailView({
   const [loadingCases, setLoadingCases] = useState(false);
   const [showCases, setShowCases] = useState(false);
 
+  // Sorting & Filtering State
+  const [filter, setFilter] = useState<FilterType>("all");
+  const [sortKey, setSortKey] = useState<SortKey>("date");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+
   useEffect(() => {
     setShowCases(false);
     setTestCases([]);
@@ -54,16 +62,12 @@ export default function ProblemDetailView({
   const handleToggleCases = async () => {
     if (!selected) return;
 
-    // Toggle off
     if (showCases) {
       setShowCases(false);
       return;
     }
 
-    // Toggle on
     setShowCases(true);
-
-    // If we already fetched for this submission, don't refetch
     if (testCases.length > 0) return;
 
     setLoadingCases(true);
@@ -76,12 +80,11 @@ export default function ProblemDetailView({
       setTestCases(data);
     } catch (error) {
       console.error(error);
-      // Optional: Handle error UI
     } finally {
       setLoadingCases(false);
     }
   };
-  // Fetch code text when selected submission changes
+
   useEffect(() => {
     if (!selected) {
       setCodeContent("// No code available.");
@@ -91,7 +94,6 @@ export default function ProblemDetailView({
     const fetchCode = async () => {
       try {
         setCodeContent("// Fetching code...");
-        // Construct the full URL - Ensure backslashes in DB path are handled if necessary
         const cleanPath = selected.code_path.replace(/\\/g, "/");
         const res = await fetch(`${BASE_STORAGE_URL}${cleanPath}`);
         if (!res.ok) throw new Error("Failed to load code");
@@ -104,6 +106,65 @@ export default function ProblemDetailView({
 
     fetchCode();
   }, [selected]);
+
+  // --- Sorting & Filtering Logic ---
+  const processedSubmissions = useMemo(() => {
+    // 1. Map to preserve original "Attempt #" based on initial index
+    // Assuming 'submissions' prop comes in descending order (latest first)
+    let temp = submissions.map((sub, idx) => ({
+      ...sub,
+      originalAttemptNum: submissions.length - idx,
+    }));
+
+    // 2. Filter
+    if (filter === "solved") {
+      temp = temp.filter((s) => s.points === 100);
+    } else if (filter === "unsolved") {
+      temp = temp.filter((s) => s.points < 100);
+    }
+
+    // 3. Sort
+    temp.sort((a, b) => {
+      let valA: number | string = 0;
+      let valB: number | string = 0;
+
+      switch (sortKey) {
+        case "date":
+          valA = new Date(a.submitted_at).getTime();
+          valB = new Date(b.submitted_at).getTime();
+          break;
+        case "score":
+          valA = a.points;
+          valB = b.points;
+          break;
+        case "runtime":
+          valA = a.runtime_sec;
+          valB = b.runtime_sec;
+          break;
+      }
+
+      if (valA < valB) return sortDir === "asc" ? -1 : 1;
+      if (valA > valB) return sortDir === "asc" ? 1 : -1;
+      return 0;
+    });
+
+    return temp;
+  }, [submissions, filter, sortKey, sortDir]);
+
+  // Helper to handle the "Sort By" dropdown change
+  const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    if (value === "best") {
+      setSortKey("score");
+      setSortDir("desc");
+    } else if (value === "fastest") {
+      setSortKey("runtime");
+      setSortDir("asc");
+    } else {
+      setSortKey("date");
+      setSortDir("desc");
+    }
+  };
 
   if (!selected)
     return <div className="text-zinc-500">No submissions found.</div>;
@@ -143,7 +204,6 @@ export default function ProblemDetailView({
                   language={selected.language === "C++" ? "cpp" : "python"}
                   style={vscDarkPlus}
                   showLineNumbers={true}
-                  // This changes the line numbers (1, 2, 3...) to a grey color
                   lineNumberStyle={{
                     color: "#71717a",
                     minWidth: "3em",
@@ -189,10 +249,7 @@ export default function ProblemDetailView({
             {/* Result Dots Area */}
             <div className="mb-4">
               <div className="flex justify-between items-end mb-2">
-                {/* The Dots */}
                 <ResultDots result={selected.result_summary} />
-
-                {/* NEW: Toggle Button */}
                 <button
                   onClick={handleToggleCases}
                   className="text-[10px] uppercase font-bold tracking-wider text-zinc-500 hover:text-white transition-colors border-b border-dashed border-zinc-600 hover:border-white pb-0.5"
@@ -201,7 +258,6 @@ export default function ProblemDetailView({
                 </button>
               </div>
 
-              {/* NEW: Expandable List */}
               {showCases && (
                 <TestCaseList cases={testCases} isLoading={loadingCases} />
               )}
@@ -210,7 +266,6 @@ export default function ProblemDetailView({
             {/* AI Analysis Grid */}
             {analysis ? (
               <div className="grid grid-cols-2 gap-3 mt-6">
-                {/* Algorithm & DS Tags */}
                 {analysis.key_algorithms &&
                   analysis.key_algorithms.length > 0 && (
                     <div className="col-span-2 flex flex-wrap gap-2">
@@ -250,7 +305,6 @@ export default function ProblemDetailView({
                       {analysis.readability_score}/10
                     </div>
                   </div>
-                  {/* Progress Bar */}
                   <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-yellow-100/80"
@@ -273,54 +327,134 @@ export default function ProblemDetailView({
 
           {/* B. HISTORY LIST */}
           <div className="flex-1 overflow-hidden flex flex-col">
-            <h3 className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-3">
-              History
-            </h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-zinc-500 text-xs font-bold uppercase tracking-widest">
+                History
+              </h3>
+              {/* Controls */}
+              <div className="flex gap-2">
+                {/* 1. Filter Dropdown */}
+                <select
+                  value={filter}
+                  onChange={(e) => setFilter(e.target.value as FilterType)}
+                  className="bg-zinc-900 border border-zinc-800 text-[10px] text-zinc-400 rounded px-2 py-1 focus:outline-none focus:border-zinc-700"
+                >
+                  <option value="all">All</option>
+                  <option value="solved">Solved</option>
+                  <option value="unsolved">Unsolved</option>
+                </select>
+
+                {/* 2. Sort Dropdown */}
+                <select
+                  value={
+                    sortKey === "score"
+                      ? "best"
+                      : sortKey === "runtime"
+                      ? "fastest"
+                      : "date"
+                  }
+                  onChange={handleSortChange}
+                  className="bg-zinc-900 border border-zinc-800 text-[10px] text-zinc-400 rounded px-2 py-1 focus:outline-none focus:border-zinc-700"
+                >
+                  <option value="date">Most Recent</option>
+                  <option value="best">Highest Score</option>
+                  <option value="fastest">Fastest</option>
+                </select>
+              </div>
+            </div>
+
             <div className="flex-1 overflow-y-auto border border-zinc-800 rounded-lg">
               <table className="w-full text-left border-collapse">
-                <thead className="bg-zinc-900/80 text-[10px] text-zinc-500 uppercase sticky top-0 backdrop-blur-sm">
+                <thead className="bg-zinc-900/80 text-[10px] text-zinc-500 uppercase sticky top-0 backdrop-blur-sm z-10">
                   <tr>
-                    <th className="p-3 font-medium">Attempt</th>
-                    <th className="p-3 font-medium">Points</th>
-                    <th className="p-3 font-medium hidden sm:table-cell">
-                      Runtime
+                    <th className="p-3 font-medium cursor-pointer hover:text-zinc-300">
+                      Attempt
                     </th>
-                    <th className="p-3 font-medium text-right">Time</th>
+                    <th
+                      className="p-3 font-medium cursor-pointer hover:text-zinc-300"
+                      onClick={() => {
+                        if (sortKey === "score")
+                          setSortDir(sortDir === "asc" ? "desc" : "asc");
+                        else {
+                          setSortKey("score");
+                          setSortDir("desc");
+                        }
+                      }}
+                    >
+                      Points{" "}
+                      {sortKey === "score" && (sortDir === "asc" ? "↑" : "↓")}
+                    </th>
+                    <th
+                      className="p-3 font-medium hidden sm:table-cell cursor-pointer hover:text-zinc-300"
+                      onClick={() => {
+                        if (sortKey === "runtime")
+                          setSortDir(sortDir === "asc" ? "desc" : "asc");
+                        else {
+                          setSortKey("runtime");
+                          setSortDir("asc");
+                        }
+                      }}
+                    >
+                      Runtime{" "}
+                      {sortKey === "runtime" && (sortDir === "asc" ? "↑" : "↓")}
+                    </th>
+                    <th
+                      className="p-3 font-medium text-right cursor-pointer hover:text-zinc-300"
+                      onClick={() => {
+                        if (sortKey === "date")
+                          setSortDir(sortDir === "asc" ? "desc" : "asc");
+                        else {
+                          setSortKey("date");
+                          setSortDir("desc");
+                        }
+                      }}
+                    >
+                      Time{" "}
+                      {sortKey === "date" && (sortDir === "asc" ? "↑" : "↓")}
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-800 bg-black text-sm">
-                  {submissions.map((sub, idx) => (
-                    <tr
-                      key={sub.external_id}
-                      onClick={() => setSelected(sub)}
-                      className={`cursor-pointer transition-colors hover:bg-zinc-900/50 ${
-                        selected.external_id === sub.external_id
-                          ? "bg-zinc-900 border-l-3 border-l-yellow-100"
-                          : ""
-                      }`}
-                    >
-                      <td className="p-3">
-                        <span className="text-zinc-300">
-                          Try #{submissions.length - idx}
-                        </span>
-                      </td>
-                      <td
-                        className={`p-3 font-mono font-bold ${
-                          sub.points === 100
-                            ? "text-emerald-500"
-                            : "text-zinc-400"
-                        }`}
-                      >
-                        {sub.points}
-                      </td>
-                      <td className="p-3 text-zinc-500 font-mono text-xs hidden sm:table-cell">
-                        {sub.runtime_sec}s
-                      </td>
-                      <td className="p-3 text-right text-zinc-600 text-xs">
-                        {new Date(sub.submitted_at).toLocaleDateString()}
+                  {processedSubmissions.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="p-4 text-center text-zinc-600">
+                        No submissions match filter.
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    processedSubmissions.map((sub) => (
+                      <tr
+                        key={sub.external_id}
+                        onClick={() => setSelected(sub)}
+                        className={`cursor-pointer transition-colors hover:bg-zinc-900/50 ${
+                          selected.external_id === sub.external_id
+                            ? "bg-zinc-900 border-l-3 border-l-yellow-100"
+                            : ""
+                        }`}
+                      >
+                        <td className="p-3">
+                          <span className="text-zinc-300">
+                            Try #{sub.originalAttemptNum}
+                          </span>
+                        </td>
+                        <td
+                          className={`p-3 font-mono font-bold ${
+                            sub.points === 100
+                              ? "text-emerald-500"
+                              : "text-zinc-400"
+                          }`}
+                        >
+                          {sub.points}
+                        </td>
+                        <td className="p-3 text-zinc-500 font-mono text-xs hidden sm:table-cell">
+                          {sub.runtime_sec}s
+                        </td>
+                        <td className="p-3 text-right text-zinc-600 text-xs">
+                          {new Date(sub.submitted_at).toLocaleDateString()}
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
