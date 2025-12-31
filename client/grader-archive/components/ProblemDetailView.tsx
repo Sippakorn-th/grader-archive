@@ -10,6 +10,26 @@ import TestCaseList from "./TestCaseList";
 const BASE_STORAGE_URL =
   "https://xjjjfiacswagivjuyfbf.supabase.co/storage/v1/object/public/grader-assets/";
 
+const TAG_DISPLAY_MAP: Record<string, string> = {
+  // Algorithms
+  "Minimum Spanning Tree (MST)": "MST",
+  "Topological Sort / SCC": "Topo Sort",
+  "Shortest Path": "Shortest Path",
+  "Number Theory / Math": "Math",
+  "String Algorithms": "Strings",
+  "Dynamic Programming": "DP",
+  "Backtracking": "Backtrack",
+  "Bitmasking": "Bitmask",
+  "BFS / DFS": "BFS/DFS",
+
+  // Data Structures
+  "Queue / Deque": "Deque",
+  "Priority Queue": "P-Queue",
+  "Hash Map / Hash Set": "HashMap",
+  "Ordered Map / Ordered Set": "Ordered Map",
+  "Linked List": "Linked List",
+};
+
 export default function ProblemDetailView({
   problem,
   submissions,
@@ -190,6 +210,20 @@ export default function ProblemDetailView({
             {/* AI Analysis Grid */}
             {analysis ? (
               <div className="grid grid-cols-2 gap-3 mt-6">
+                {/* Algorithm & DS Tags */}
+                {analysis.key_algorithms &&
+                  analysis.key_algorithms.length > 0 && (
+                    <div className="col-span-2 flex flex-wrap gap-2">
+                      {analysis.key_algorithms.map((tag) => (
+                        <span
+                          key={tag}
+                          className="text-[10px] font-bold text-zinc-300 bg-zinc-800 border border-zinc-700 px-2.5 py-1 rounded-full uppercase tracking-wide whitespace-nowrap"
+                        >
+                          {TAG_DISPLAY_MAP[tag] || tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 <div className="bg-black border border-zinc-800 p-3 rounded">
                   <div className="text-[10px] text-zinc-500 uppercase mb-1">
                     Time Comp.
@@ -198,6 +232,7 @@ export default function ProblemDetailView({
                     {analysis.time_complexity}
                   </div>
                 </div>
+
                 <div className="bg-black border border-zinc-800 p-3 rounded">
                   <div className="text-[10px] text-zinc-500 uppercase mb-1">
                     Space Comp.
