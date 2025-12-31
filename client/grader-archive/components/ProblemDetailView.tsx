@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Submission, ProblemDetail } from "@/types";
+import { Submission, ProblemDetail, TestCase } from "@/types";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import ResultDots from "./ResultDots";
+import TestCaseList from "./TestCaseList";
 
 const BASE_STORAGE_URL =
   "https://xjjjfiacswagivjuyfbf.supabase.co/storage/v1/object/public/grader-assets/";
@@ -21,7 +22,45 @@ export default function ProblemDetailView({
     submissions[0] || null
   );
   const [codeContent, setCodeContent] = useState<string>("// Loading code...");
+  const [testCases, setTestCases] = useState<TestCase[]>([]);
+  const [loadingCases, setLoadingCases] = useState(false);
+  const [showCases, setShowCases] = useState(false);
 
+  useEffect(() => {
+    setShowCases(false);
+    setTestCases([]);
+  }, [selected?.id]);
+
+  const handleToggleCases = async () => {
+    if (!selected) return;
+
+    // Toggle off
+    if (showCases) {
+      setShowCases(false);
+      return;
+    }
+
+    // Toggle on
+    setShowCases(true);
+
+    // If we already fetched for this submission, don't refetch
+    if (testCases.length > 0) return;
+
+    setLoadingCases(true);
+    try {
+      const res = await fetch(
+        `http://localhost:8080/submissions/${selected.id}/testcases`
+      );
+      if (!res.ok) throw new Error("Failed to fetch cases");
+      const data = await res.json();
+      setTestCases(data);
+    } catch (error) {
+      console.error(error);
+      // Optional: Handle error UI
+    } finally {
+      setLoadingCases(false);
+    }
+  };
   // Fetch code text when selected submission changes
   useEffect(() => {
     if (!selected) {
@@ -127,9 +166,25 @@ export default function ProblemDetailView({
               </div>
             </div>
 
-            {/* Result Dots */}
+            {/* Result Dots Area */}
             <div className="mb-4">
-              <ResultDots result={selected.result_summary} />
+              <div className="flex justify-between items-end mb-2">
+                {/* The Dots */}
+                <ResultDots result={selected.result_summary} />
+
+                {/* NEW: Toggle Button */}
+                <button
+                  onClick={handleToggleCases}
+                  className="text-[10px] uppercase font-bold tracking-wider text-zinc-500 hover:text-white transition-colors border-b border-dashed border-zinc-600 hover:border-white pb-0.5"
+                >
+                  {showCases ? "Hide Details" : "View Cases"}
+                </button>
+              </div>
+
+              {/* NEW: Expandable List */}
+              {showCases && (
+                <TestCaseList cases={testCases} isLoading={loadingCases} />
+              )}
             </div>
 
             {/* AI Analysis Grid */}
@@ -205,7 +260,7 @@ export default function ProblemDetailView({
                       onClick={() => setSelected(sub)}
                       className={`cursor-pointer transition-colors hover:bg-zinc-900/50 ${
                         selected.external_id === sub.external_id
-                          ? "bg-zinc-900 border-l-2 border-yellow-100"
+                          ? "bg-zinc-900 border-l-3 border-l-yellow-100"
                           : ""
                       }`}
                     >

@@ -19,6 +19,7 @@ export interface AIAnalysis {
 }
 
 export interface Submission {
+  id: string;
   problem_slug: string;
   external_id: string;
   user_handle: string;
@@ -31,6 +32,15 @@ export interface Submission {
   code_path: string;
   ai_analysis: AIAnalysis | null;
   tries: number;
+}
+
+export interface TestCase {
+  submission_id: string;
+  testcase_num: number;
+  runtime_sec: number | null;
+  memory_mb: number | null;
+  result_text: string | null;
+  score: number | null;
 }
 
 export type ProblemDetail = Problem;
