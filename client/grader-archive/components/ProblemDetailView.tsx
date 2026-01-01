@@ -7,8 +7,9 @@ import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import ResultDots from "./ResultDots";
 import TestCaseList from "./TestCaseList";
 
-const BASE_STORAGE_URL =
-  "https://xjjjfiacswagivjuyfbf.supabase.co/storage/v1/object/public/grader-assets/";
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+const BASE_STORAGE_URL = process.env.NEXT_PUBLIC_STORAGE_BASE_URL;
 
 const TAG_DISPLAY_MAP: Record<string, string> = {
   // Algorithms
@@ -73,7 +74,7 @@ export default function ProblemDetailView({
     setLoadingCases(true);
     try {
       const res = await fetch(
-        `http://localhost:8080/submissions/${selected.id}/testcases`
+        `${API_BASE}/submissions/${selected.id}/testcases`
       );
       if (!res.ok) throw new Error("Failed to fetch cases");
       const data = await res.json();

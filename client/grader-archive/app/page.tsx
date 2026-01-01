@@ -1,9 +1,11 @@
 import ArchiveDashboard from "@/components/ArchiveDashboard";
 import { Problem } from "@/types";
 
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+
 async function getProblems(): Promise<Problem[]> {
   try {
-    const res = await fetch("http://localhost:8080/problems", {
+    const res = await fetch(`${API_BASE}/problems`, {
       cache: "no-store", // Ensure fresh data on every load, or use 'force-cache' if static
     });
 

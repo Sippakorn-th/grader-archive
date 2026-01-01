@@ -3,6 +3,8 @@
 import ProblemDetailView from "@/components/ProblemDetailView";
 import { ProblemDetail, Submission } from "@/types";
 
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+
 async function fetchData(url: string) {
   try {
     const res = await fetch(url, { cache: "no-store" });
@@ -24,10 +26,10 @@ export default async function ProblemPage({
 
   // Parallel data fetching
   const problemData: Promise<ProblemDetail> = fetchData(
-    `http://localhost:8080/problems/${slug}`
+    `${API_BASE}/problems/${slug}`
   );
   const submissionsData: Promise<Submission[]> = fetchData(
-    `http://localhost:8080/problems/${slug}/submissions`
+    `${API_BASE}/problems/${slug}/submissions`
   );
 
   const [problem, submissions] = await Promise.all([
