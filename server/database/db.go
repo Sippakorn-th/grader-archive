@@ -4,12 +4,16 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"os"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 func ConnectDB() *sql.DB {
-	dsn := "postgresql://postgres:root@localhost:5432/cp5"
+	dsn := os.Getenv("DB_URL")
+	if dsn == "" {
+		log.Fatal("DB_URL environment variable is not set")
+	}
 
 	db, err := sql.Open("pgx", dsn)
 	if err != nil {
