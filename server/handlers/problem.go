@@ -15,7 +15,11 @@ func (h *Handler) GetProblems(w http.ResponseWriter, r *http.Request) {
 	query := `
 		SELECT slug, name, difficulty_stars, course, total_submissions, highest_points
 		FROM problems
+		ORDER BY
+			total_submissions DESC,
+			highest_points DESC
 	`
+
 
 	// 2. Execute Query
 	rows, err := h.DB.Query(query)
