@@ -43,11 +43,6 @@ const formatDate = (value: string | null | undefined) => {
   return Number.isNaN(date.getTime()) ? "Unknown" : date.toLocaleDateString();
 };
 
-const getCodeFileName = (codePath: unknown) => {
-  if (typeof codePath !== "string" || !codePath) return "No code file";
-  return codePath.split("\\").pop()?.split("/").pop() || "No code file";
-};
-
 const getSyntaxLanguage = (language: unknown) => {
   if (language === "C++") return "cpp";
   if (typeof language === "string" && language.toLowerCase().includes("python")) {
@@ -394,12 +389,23 @@ function ProblemDetailContent({
   handleSortChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
 }) {
   const analysis = selected.ai_analysis;
-  const codeFileName = getCodeFileName(selected.code_path);
   const language = selected.language ?? "Unknown";
   const readabilityScore = getReadabilityScore(analysis?.readability_score);
   const keyAlgorithms = Array.isArray(analysis?.key_algorithms)
     ? analysis.key_algorithms.map((tag) => String(tag)).filter(Boolean)
     : [];
+  const [copyLabel, setCopyLabel] = useState("Copy");
+
+  const handleCopyCode = async () => {
+    try {
+      await navigator.clipboard.writeText(codeContent);
+      setCopyLabel("Copied");
+      window.setTimeout(() => setCopyLabel("Copy"), 1600);
+    } catch (error) {
+      setCopyLabel("Failed");
+      window.setTimeout(() => setCopyLabel("Copy"), 1600);
+    }
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -408,10 +414,14 @@ function ProblemDetailContent({
         <div className="lg:sticky lg:top-4 h-fit">
           <div className="bg-[#1e1e1e] border border-zinc-800 rounded-lg overflow-hidden shadow-2xl">
             <div className="bg-[#1e1e1e] border-b border-zinc-800 px-4 py-2 flex justify-between items-center">
-              <span className="text-xs font-mono text-zinc-400">
-                {codeFileName}
-              </span>
-              <span className="text-xs text-zinc-500">{language}</span>
+              <span className="text-xs text-zinc-400">{language}</span>
+              <button
+                type="button"
+                onClick={handleCopyCode}
+                className="text-[10px] uppercase font-bold tracking-wider text-zinc-500 hover:text-white transition-colors border border-zinc-800 hover:border-zinc-600 bg-black/40 px-2 py-1 rounded"
+              >
+                {copyLabel}
+              </button>
             </div>
             <div className="text-sm">
               <SyntaxHighlighter
