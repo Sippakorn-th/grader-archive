@@ -24,8 +24,10 @@ export default function TestCaseList({ cases, isLoading }: TestCaseListProps) {
   }
 
   // Helper to map raw result text to UI Badges
-  const getBadge = (raw: string | null) => {
-    if (!raw) return { text: "UNKNOWN", color: "text-zinc-500" };
+  const getBadge = (raw: unknown) => {
+    if (typeof raw !== "string" || !raw) {
+      return { text: "UNKNOWN", color: "text-zinc-500" };
+    }
 
     if (raw === "P")
       return {
@@ -65,12 +67,24 @@ export default function TestCaseList({ cases, isLoading }: TestCaseListProps) {
         <tbody className="text-xs font-mono">
           {cases.map((tc) => {
             const badge = getBadge(tc.result_text);
+            const runtime =
+              typeof tc.runtime_sec === "number" &&
+              Number.isFinite(tc.runtime_sec)
+                ? `${tc.runtime_sec.toFixed(3)}s`
+                : "-";
+            const memory =
+              typeof tc.memory_mb === "number" && Number.isFinite(tc.memory_mb)
+                ? `${tc.memory_mb}MB`
+                : "-";
+
             return (
               <tr
-                key={tc.testcase_num}
+                key={tc.testcase_num ?? `${tc.submission_id}-${badge.text}`}
                 className="border-b border-zinc-800/50 last:border-0 hover:bg-zinc-800/30"
               >
-                <td className="py-2 pl-2 text-zinc-500">{tc.testcase_num}</td>
+                <td className="py-2 pl-2 text-zinc-500">
+                  {tc.testcase_num ?? "—"}
+                </td>
                 <td className="py-2">
                   <span
                     className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${badge.color}`}
@@ -79,12 +93,10 @@ export default function TestCaseList({ cases, isLoading }: TestCaseListProps) {
                   </span>
                 </td>
                 <td className="py-2 text-right text-zinc-400">
-                  {tc.runtime_sec !== null
-                    ? `${tc.runtime_sec.toFixed(3)}s`
-                    : "-"}
+                  {runtime}
                 </td>
                 <td className="py-2 pr-2 text-right text-zinc-500">
-                  {tc.memory_mb !== null ? `${tc.memory_mb}MB` : "-"}
+                  {memory}
                 </td>
               </tr>
             );

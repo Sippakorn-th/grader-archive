@@ -2,9 +2,9 @@
 import React from "react";
 
 export default function StarRating({ rating }: { rating: number }) {
-  // Cap rating between 0 and 5
-  const safeRating = Math.min(5, Math.max(0, rating));
-  const starColor = "#fef9c3";
+  const numericRating =
+    typeof rating === "number" && Number.isFinite(rating) ? rating : 0;
+  const safeRating = Math.min(5, Math.max(0, numericRating));
 
   return (
     <div className="flex items-center gap-0.5">

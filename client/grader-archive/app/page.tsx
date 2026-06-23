@@ -12,7 +12,8 @@ async function getProblems(): Promise<Problem[]> {
     if (!res.ok) {
       throw new Error("Failed to fetch");
     }
-    return res.json();
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
   } catch (error) {
     console.error("API Error:", error);
     // Return empty array or mock data for safety

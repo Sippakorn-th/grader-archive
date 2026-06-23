@@ -12,14 +12,21 @@ const COURSE_MAP: Record<string, string> = {
 };
 
 export default function ProblemRow({ problem }: { problem: Problem }) {
+  const course = String(problem.course ?? "Unknown");
+  const slug = String(problem.slug ?? "");
+  const name = String(problem.name ?? "Untitled problem");
+  const highestPoints = problem.highest_points ?? 0;
+  const totalSubmissions = problem.total_submissions ?? 0;
   const shortCourse =
-    COURSE_MAP[problem.course] || problem.course.substring(0, 4).toUpperCase();
-  const isSolved = problem.highest_points === 100;
+    COURSE_MAP[course] || course.substring(0, 4).toUpperCase();
+  const isSolved = highestPoints === 100;
+  const href = slug ? `/problems/${slug}` : "#";
 
   return (
     <Link
-      href={`/problems/${problem.slug}`}
+      href={href}
       className="group flex items-center justify-between p-4 border-b border-zinc-800 hover:bg-zinc-900 transition-colors duration-200 cursor-pointer"
+      aria-disabled={!slug}
     >
       {/* Left: Course Tag & Name */}
       <div className="flex items-center gap-4 flex-1">
@@ -29,10 +36,10 @@ export default function ProblemRow({ problem }: { problem: Problem }) {
 
         <div className="flex flex-col">
           <span className="text-zinc-200 font-medium group-hover:text-white transition-colors">
-            {problem.name}
+            {name}
           </span>
           <span className="text-xs text-zinc-500 font-mono">
-            {problem.slug}
+            {slug || "missing-slug"}
           </span>
         </div>
       </div>
@@ -49,10 +56,10 @@ export default function ProblemRow({ problem }: { problem: Problem }) {
             isSolved ? "text-white" : "text-zinc-500"
           }`}
         >
-          {isSolved ? "SOLVED" : `${problem.highest_points} PTS`}
+          {isSolved ? "SOLVED" : `${highestPoints} PTS`}
         </span>
         <span className="text-[10px] text-zinc-500">
-          {problem.total_submissions} subs
+          {totalSubmissions} subs
         </span>
       </div>
     </Link>

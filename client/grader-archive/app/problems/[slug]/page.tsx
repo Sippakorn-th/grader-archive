@@ -36,7 +36,7 @@ export default async function ProblemPage({
 
   return (
     <main className="min-h-screen bg-black text-zinc-200 px-6">
-      <ProblemDetailView problem={problem} />
+      <ProblemDetailView problem={problem} slug={slug} />
     </main>
   );
 }

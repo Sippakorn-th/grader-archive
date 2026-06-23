@@ -22,13 +22,19 @@ export default function ArchiveDashboard({
   const [hideUnsolved, setHideUnsolved] = useState(false);
 
   const filteredProblems = useMemo(() => {
+    const normalizedSearch = search.toLowerCase();
+
     return initialData.filter((p) => {
+      const name = String(p.name ?? "");
+      const slug = String(p.slug ?? "");
+      const course = String(p.course ?? "");
+      const highestPoints = p.highest_points ?? 0;
       const matchesSearch =
-        p.name.toLowerCase().includes(search.toLowerCase()) ||
-        p.slug.toLowerCase().includes(search.toLowerCase());
+        name.toLowerCase().includes(normalizedSearch) ||
+        slug.toLowerCase().includes(normalizedSearch);
       const matchesCourse =
-        selectedCourse === "All" || p.course === selectedCourse;
-      const matchesStatus = hideUnsolved ? p.highest_points === 100 : true;
+        selectedCourse === "All" || course === selectedCourse;
+      const matchesStatus = hideUnsolved ? highestPoints === 100 : true;
       return matchesSearch && matchesCourse && matchesStatus;
     });
   }, [initialData, search, selectedCourse, hideUnsolved]);
@@ -91,8 +97,11 @@ export default function ArchiveDashboard({
 
       <div className="border-t border-zinc-800 min-h-[50vh] pt-6">
         {filteredProblems.length > 0 ? (
-          filteredProblems.map((problem) => (
-            <ProblemRow key={problem.slug} problem={problem} />
+          filteredProblems.map((problem, index) => (
+            <ProblemRow
+              key={problem.slug ?? `problem-${index}`}
+              problem={problem}
+            />
           ))
         ) : (
           <div className="py-20 text-center text-zinc-600">

@@ -1,7 +1,17 @@
 import React from "react";
 
-export default function ResultDots({ result }: { result: string }) {
-  const cleanResult = result.replace(/[\[\]]/g, "");
+export default function ResultDots({
+  result,
+}: {
+  result?: unknown;
+}) {
+  const cleanResult =
+    typeof result === "string" ? result.replace(/[\[\]]/g, "") : "";
+
+  if (!cleanResult) {
+    return <span className="text-xs text-zinc-600">No result summary</span>;
+  }
+
   return (
     <div className="flex gap-0.5">
       {cleanResult.split("").map((char, i) => {

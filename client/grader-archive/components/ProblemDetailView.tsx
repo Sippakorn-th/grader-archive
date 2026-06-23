@@ -34,10 +34,39 @@ const TAG_DISPLAY_MAP: Record<string, string> = {
 type SortKey = "date" | "score" | "runtime";
 type FilterType = "all" | "solved" | "unsolved";
 
+const formatNumber = (value: number | null | undefined, fallback = "—") =>
+  typeof value === "number" && Number.isFinite(value) ? String(value) : fallback;
+
+const formatDate = (value: string | null | undefined) => {
+  if (!value) return "Unknown";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "Unknown" : date.toLocaleDateString();
+};
+
+const getCodeFileName = (codePath: unknown) => {
+  if (typeof codePath !== "string" || !codePath) return "No code file";
+  return codePath.split("\\").pop()?.split("/").pop() || "No code file";
+};
+
+const getSyntaxLanguage = (language: unknown) => {
+  if (language === "C++") return "cpp";
+  if (typeof language === "string" && language.toLowerCase().includes("python")) {
+    return "python";
+  }
+  return "text";
+};
+
+const getReadabilityScore = (score: number | null | undefined) => {
+  if (typeof score !== "number" || !Number.isFinite(score)) return null;
+  return Math.min(10, Math.max(0, score));
+};
+
 export default function ProblemDetailView({
   problem,
+  slug,
 }: {
   problem: ProblemDetail;
+  slug: string;
 }) {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [selected, setSelected] = useState<Submission | null>(null);
@@ -65,13 +94,14 @@ export default function ProblemDetailView({
 
       try {
         const res = await fetch(
-          `${API_BASE}/problems/${problem.slug}/submissions`
+          `${API_BASE}/problems/${slug}/submissions`
         );
         if (!res.ok) throw new Error("Failed to fetch submissions");
-        const data: Submission[] = await res.json();
+        const data = await res.json();
         if (!isActive) return;
-        setSubmissions(data);
-        setSelected(data[0] || null);
+        const safeSubmissions = Array.isArray(data) ? data : [];
+        setSubmissions(safeSubmissions);
+        setSelected(safeSubmissions[0] || null);
       } catch (error) {
         if (!isActive) return;
         setSubmissionsError("Could not load submissions.");
@@ -85,7 +115,7 @@ export default function ProblemDetailView({
     return () => {
       isActive = false;
     };
-  }, [problem.slug]);
+  }, [slug]);
 
   useEffect(() => {
     setShowCases(false);
@@ -93,7 +123,7 @@ export default function ProblemDetailView({
   }, [selected?.id]);
 
   const handleToggleCases = async () => {
-    if (!selected) return;
+    if (!selected?.id) return;
 
     if (showCases) {
       setShowCases(false);
@@ -110,7 +140,7 @@ export default function ProblemDetailView({
       );
       if (!res.ok) throw new Error("Failed to fetch cases");
       const data = await res.json();
-      setTestCases(data);
+      setTestCases(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error(error);
     } finally {
@@ -127,6 +157,16 @@ export default function ProblemDetailView({
     const fetchCode = async () => {
       try {
         setCodeContent("// Fetching code...");
+        if (typeof selected.code_path !== "string" || !selected.code_path) {
+          setCodeContent("// No code file available for this submission.");
+          return;
+        }
+
+        if (!BASE_STORAGE_URL) {
+          setCodeContent("// Error: Storage URL is not configured.");
+          return;
+        }
+
         const cleanPath = selected.code_path.replace(/\\/g, "/");
         const res = await fetch(`${BASE_STORAGE_URL}${cleanPath}`);
         if (!res.ok) throw new Error("Failed to load code");
@@ -153,7 +193,7 @@ export default function ProblemDetailView({
     if (filter === "solved") {
       temp = temp.filter((s) => s.points === 100);
     } else if (filter === "unsolved") {
-      temp = temp.filter((s) => s.points < 100);
+      temp = temp.filter((s) => (s.points ?? 0) < 100);
     }
 
     // 3. Sort
@@ -165,14 +205,16 @@ export default function ProblemDetailView({
         case "date":
           valA = new Date(a.submitted_at).getTime();
           valB = new Date(b.submitted_at).getTime();
+          if (Number.isNaN(valA)) valA = 0;
+          if (Number.isNaN(valB)) valB = 0;
           break;
         case "score":
-          valA = a.points;
-          valB = b.points;
+          valA = a.points ?? 0;
+          valB = b.points ?? 0;
           break;
         case "runtime":
-          valA = a.runtime_sec;
-          valB = b.runtime_sec;
+          valA = a.runtime_sec ?? Number.MAX_SAFE_INTEGER;
+          valB = b.runtime_sec ?? Number.MAX_SAFE_INTEGER;
           break;
       }
 
@@ -205,12 +247,14 @@ export default function ProblemDetailView({
       <div className="mb-8 border-b border-zinc-800 pb-6">
         <div className="flex items-center gap-3 mb-2">
           <span className="text-xs font-bold text-zinc-500 bg-zinc-900 border border-zinc-800 px-2 py-1 rounded">
-            {problem.course}
+            {problem.course ?? "Unknown"}
           </span>
-          <span className="text-zinc-500 text-sm mono">{problem.slug}</span>
+          <span className="text-zinc-500 text-sm mono">
+            {problem.slug ?? slug}
+          </span>
         </div>
         <h1 className="text-4xl font-black text-white tracking-tight">
-          {problem.name}
+          {problem.name ?? "Untitled problem"}
         </h1>
       </div>
 
@@ -350,6 +394,12 @@ function ProblemDetailContent({
   handleSortChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
 }) {
   const analysis = selected.ai_analysis;
+  const codeFileName = getCodeFileName(selected.code_path);
+  const language = selected.language ?? "Unknown";
+  const readabilityScore = getReadabilityScore(analysis?.readability_score);
+  const keyAlgorithms = Array.isArray(analysis?.key_algorithms)
+    ? analysis.key_algorithms.map((tag) => String(tag)).filter(Boolean)
+    : [];
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -359,15 +409,13 @@ function ProblemDetailContent({
           <div className="bg-[#1e1e1e] border border-zinc-800 rounded-lg overflow-hidden shadow-2xl">
             <div className="bg-[#1e1e1e] border-b border-zinc-800 px-4 py-2 flex justify-between items-center">
               <span className="text-xs font-mono text-zinc-400">
-                {selected.code_path.split("\\").pop()?.split("/").pop()}
+                {codeFileName}
               </span>
-              <span className="text-xs text-zinc-500">
-                {selected.language}
-              </span>
+              <span className="text-xs text-zinc-500">{language}</span>
             </div>
             <div className="text-sm">
               <SyntaxHighlighter
-                language={selected.language === "C++" ? "cpp" : "python"}
+                language={getSyntaxLanguage(selected.language)}
                 style={vscDarkPlus}
                 showLineNumbers={true}
                 lineNumberStyle={{
@@ -398,16 +446,16 @@ function ProblemDetailContent({
                 Selected Submission
               </h2>
               <div className="text-2xl font-mono text-white">
-                {selected.points}{" "}
+                {formatNumber(selected.points)}{" "}
                 <span className="text-zinc-600 text-lg">/ 100</span>
               </div>
             </div>
             <div className="text-right">
               <div className="text-white font-mono text-xl">
-                {selected.runtime_sec}s
+                {formatNumber(selected.runtime_sec)}s
               </div>
               <div className="text-zinc-500 text-xs">
-                {selected.memory_kb} KB
+                {formatNumber(selected.memory_kb)} KB
               </div>
             </div>
           </div>
@@ -432,10 +480,9 @@ function ProblemDetailContent({
             {/* AI Analysis Grid */}
             {analysis ? (
               <div className="grid grid-cols-2 gap-3 mt-6">
-                {analysis.key_algorithms &&
-                  analysis.key_algorithms.length > 0 && (
+                {keyAlgorithms.length > 0 && (
                     <div className="col-span-2 flex flex-wrap gap-2">
-                      {analysis.key_algorithms.map((tag) => (
+                      {keyAlgorithms.map((tag) => (
                         <span
                           key={tag}
                           className="text-[10px] font-bold text-zinc-300 bg-zinc-800 border border-zinc-700 px-2.5 py-1 rounded-full uppercase tracking-wide whitespace-nowrap"
@@ -450,7 +497,7 @@ function ProblemDetailContent({
                     Time Comp.
                   </div>
                   <div className="text-yellow-100 font-mono">
-                    {analysis.time_complexity}
+                    {analysis.time_complexity ?? "Unknown"}
                   </div>
                 </div>
 
@@ -459,7 +506,7 @@ function ProblemDetailContent({
                     Space Comp.
                   </div>
                   <div className="text-yellow-100 font-mono">
-                    {analysis.space_complexity}
+                    {analysis.space_complexity ?? "Unknown"}
                   </div>
                 </div>
                 <div className="col-span-2 bg-black border border-zinc-800 p-3 rounded">
@@ -468,19 +515,24 @@ function ProblemDetailContent({
                       Readability
                     </div>
                     <div className="text-xs text-white font-bold">
-                      {analysis.readability_score}/10
+                      {readabilityScore ?? "—"}/10
                     </div>
                   </div>
                   <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-yellow-100/80"
-                      style={{ width: `${analysis.readability_score * 10}%` }}
+                      style={{
+                        width:
+                          readabilityScore === null
+                            ? "0%"
+                            : `${readabilityScore * 10}%`,
+                      }}
                     />
                   </div>
                 </div>
                 <div className="col-span-2 mt-2">
                   <p className="text-sm text-zinc-400 italic leading-relaxed">
-                    &quot;{analysis.reasoning}&quot;
+                    &quot;{analysis.reasoning ?? "No reasoning available."}&quot;
                   </p>
                 </div>
               </div>
@@ -588,12 +640,20 @@ function ProblemDetailContent({
                       </td>
                     </tr>
                   ) : (
-                    processedSubmissions.map((sub) => (
+                    processedSubmissions.map((sub) => {
+                      const selectedKey =
+                        selected.id ?? selected.external_id ?? "";
+                      const subKey =
+                        sub.id ??
+                        sub.external_id ??
+                        String(sub.originalAttemptNum);
+
+                      return (
                       <tr
-                        key={sub.external_id}
+                        key={subKey}
                         onClick={() => setSelected(sub)}
                         className={`cursor-pointer transition-colors hover:bg-zinc-900/50 ${
-                          selected.external_id === sub.external_id
+                          selectedKey && selectedKey === subKey
                             ? "bg-zinc-900 border-l-3 border-l-yellow-100"
                             : ""
                         }`}
@@ -610,16 +670,17 @@ function ProblemDetailContent({
                               : "text-zinc-400"
                           }`}
                         >
-                          {sub.points}
+                          {formatNumber(sub.points)}
                         </td>
                         <td className="p-3 text-zinc-500 font-mono text-xs hidden sm:table-cell">
-                          {sub.runtime_sec}s
+                          {formatNumber(sub.runtime_sec)}s
                         </td>
                         <td className="p-3 text-right text-zinc-600 text-xs">
-                          {new Date(sub.submitted_at).toLocaleDateString()}
+                          {formatDate(sub.submitted_at)}
                         </td>
                       </tr>
-                    ))
+                      );
+                    })
                   )}
                 </tbody>
               </table>
