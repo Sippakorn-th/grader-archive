@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { Submission, ProblemDetail, TestCase } from "@/types";
+import Link from "next/link";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import ResultDots from "./ResultDots";
@@ -240,6 +241,14 @@ export default function ProblemDetailView({
     <div className="max-w-7xl mx-auto w-full pt-10 pb-20">
       {/* 1. HEADER: Problem Info */}
       <div className="mb-8 border-b border-zinc-800 pb-6">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 text-sm text-zinc-500 hover:text-white transition-colors mb-5"
+        >
+          <span aria-hidden="true">←</span>
+          <span>Back to Problems</span>
+        </Link>
+
         <div className="flex items-center gap-3 mb-2">
           <span className="text-xs font-bold text-zinc-500 bg-zinc-900 border border-zinc-800 px-2 py-1 rounded">
             {problem.course ?? "Unknown"}

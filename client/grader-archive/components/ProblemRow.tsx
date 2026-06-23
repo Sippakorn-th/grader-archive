@@ -25,7 +25,7 @@ export default function ProblemRow({ problem }: { problem: Problem }) {
   return (
     <Link
       href={href}
-      className="group flex items-center justify-between p-4 border-b border-zinc-800 hover:bg-zinc-900 transition-colors duration-200 cursor-pointer"
+      className="group flex items-center justify-between p-4 border-b border-zinc-800 border-l-2 border-l-transparent hover:border-l-zinc-500 hover:bg-zinc-900/80 focus-visible:outline-none focus-visible:bg-zinc-900/80 focus-visible:border-l-white transition-colors duration-200 cursor-pointer"
       aria-disabled={!slug}
     >
       {/* Left: Course Tag & Name */}
@@ -50,16 +50,24 @@ export default function ProblemRow({ problem }: { problem: Problem }) {
       </div>
 
       {/* Right: Stats */}
-      <div className="w-32 flex flex-col items-end gap-1 shrink-0">
+      <div className="w-40 flex items-center justify-end gap-3 shrink-0">
+        <div className="flex flex-col items-end gap-1">
+          <span
+            className={`text-xs font-bold ${
+              isSolved ? "text-white" : "text-zinc-500"
+            }`}
+          >
+            {isSolved ? "SOLVED" : `${highestPoints} PTS`}
+          </span>
+          <span className="text-[10px] text-zinc-500">
+            {totalSubmissions} subs
+          </span>
+        </div>
         <span
-          className={`text-xs font-bold ${
-            isSolved ? "text-white" : "text-zinc-500"
-          }`}
+          aria-hidden="true"
+          className="text-zinc-700 group-hover:text-zinc-300 group-focus-visible:text-white transition-colors"
         >
-          {isSolved ? "SOLVED" : `${highestPoints} PTS`}
-        </span>
-        <span className="text-[10px] text-zinc-500">
-          {totalSubmissions} subs
+          →
         </span>
       </div>
     </Link>
