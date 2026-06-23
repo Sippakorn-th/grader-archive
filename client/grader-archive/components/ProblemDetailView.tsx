@@ -36,16 +36,14 @@ type FilterType = "all" | "solved" | "unsolved";
 
 export default function ProblemDetailView({
   problem,
-  submissions,
 }: {
   problem: ProblemDetail;
-  submissions: Submission[];
 }) {
-  // Default to the first (latest) submission
-  const [selected, setSelected] = useState<Submission | null>(
-    submissions[0] || null
-  );
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [selected, setSelected] = useState<Submission | null>(null);
   const [codeContent, setCodeContent] = useState<string>("// Loading code...");
+  const [loadingSubmissions, setLoadingSubmissions] = useState(true);
+  const [submissionsError, setSubmissionsError] = useState<string | null>(null);
   const [testCases, setTestCases] = useState<TestCase[]>([]);
   const [loadingCases, setLoadingCases] = useState(false);
   const [showCases, setShowCases] = useState(false);
@@ -54,6 +52,40 @@ export default function ProblemDetailView({
   const [filter, setFilter] = useState<FilterType>("all");
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+
+  useEffect(() => {
+    let isActive = true;
+
+    const fetchSubmissions = async () => {
+      setLoadingSubmissions(true);
+      setSubmissionsError(null);
+      setSubmissions([]);
+      setSelected(null);
+      setCodeContent("// Loading code...");
+
+      try {
+        const res = await fetch(
+          `${API_BASE}/problems/${problem.slug}/submissions`
+        );
+        if (!res.ok) throw new Error("Failed to fetch submissions");
+        const data: Submission[] = await res.json();
+        if (!isActive) return;
+        setSubmissions(data);
+        setSelected(data[0] || null);
+      } catch (error) {
+        if (!isActive) return;
+        setSubmissionsError("Could not load submissions.");
+      } finally {
+        if (isActive) setLoadingSubmissions(false);
+      }
+    };
+
+    fetchSubmissions();
+
+    return () => {
+      isActive = false;
+    };
+  }, [problem.slug]);
 
   useEffect(() => {
     setShowCases(false);
@@ -88,7 +120,7 @@ export default function ProblemDetailView({
 
   useEffect(() => {
     if (!selected) {
-      setCodeContent("// No code available.");
+      if (!loadingSubmissions) setCodeContent("// No code available.");
       return;
     }
 
@@ -106,7 +138,7 @@ export default function ProblemDetailView({
     };
 
     fetchCode();
-  }, [selected]);
+  }, [selected, loadingSubmissions]);
 
   // --- Sorting & Filtering Logic ---
   const processedSubmissions = useMemo(() => {
@@ -167,11 +199,6 @@ export default function ProblemDetailView({
     }
   };
 
-  if (!selected)
-    return <div className="text-zinc-500">No submissions found.</div>;
-
-  const analysis = selected.ai_analysis;
-
   return (
     <div className="max-w-7xl mx-auto w-full pt-10 pb-20">
       {/* 1. HEADER: Problem Info */}
@@ -187,65 +214,203 @@ export default function ProblemDetailView({
         </h1>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* LEFT COLUMN: Code Viewer (7/12) */}
-        <div className="lg:col-span-7 h-full">
-          <div className="lg:sticky lg:top-4 h-fit">
-            <div className="bg-[#1e1e1e] border border-zinc-800 rounded-lg overflow-hidden shadow-2xl">
-              <div className="bg-[#1e1e1e] border-b border-zinc-800 px-4 py-2 flex justify-between items-center">
-                <span className="text-xs font-mono text-zinc-400">
-                  {selected.code_path.split("\\").pop()?.split("/").pop()}
-                </span>
-                <span className="text-xs text-zinc-500">
-                  {selected.language}
-                </span>
-              </div>
-              <div className="text-sm">
-                <SyntaxHighlighter
-                  language={selected.language === "C++" ? "cpp" : "python"}
-                  style={vscDarkPlus}
-                  showLineNumbers={true}
-                  lineNumberStyle={{
-                    color: "#71717a",
-                    minWidth: "3em",
-                    paddingRight: "1em",
-                  }}
-                  customStyle={{
-                    margin: 0,
-                    background: "#1e1e1e",
-                    height: "calc(82vh)",
-                  }}
-                >
-                  {codeContent}
-                </SyntaxHighlighter>
-              </div>
+      {loadingSubmissions && <ProblemDetailSkeleton />}
+
+      {!loadingSubmissions && submissionsError && (
+        <div className="border border-red-900/50 bg-red-950/20 p-6 rounded-lg text-red-300">
+          {submissionsError}
+        </div>
+      )}
+
+      {!loadingSubmissions && !submissionsError && !selected && (
+        <div className="border border-zinc-800 bg-zinc-900/40 p-8 rounded-lg text-center text-zinc-500">
+          No submissions found.
+        </div>
+      )}
+
+      {!loadingSubmissions && !submissionsError && selected && (
+        <ProblemDetailContent
+          selected={selected}
+          setSelected={setSelected}
+          codeContent={codeContent}
+          testCases={testCases}
+          loadingCases={loadingCases}
+          showCases={showCases}
+          handleToggleCases={handleToggleCases}
+          processedSubmissions={processedSubmissions}
+          filter={filter}
+          setFilter={setFilter}
+          sortKey={sortKey}
+          setSortKey={setSortKey}
+          sortDir={sortDir}
+          setSortDir={setSortDir}
+          handleSortChange={handleSortChange}
+        />
+      )}
+    </div>
+  );
+}
+
+function ProblemDetailSkeleton() {
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-pulse">
+      <div className="lg:col-span-7 h-full">
+        <div className="bg-[#1e1e1e] border border-zinc-800 rounded-lg overflow-hidden shadow-2xl">
+          <div className="border-b border-zinc-800 px-4 py-3 flex justify-between">
+            <div className="h-3 w-40 bg-zinc-700 rounded" />
+            <div className="h-3 w-16 bg-zinc-800 rounded" />
+          </div>
+          <div className="space-y-3 p-5 h-[82vh]">
+            {Array.from({ length: 18 }).map((_, index) => (
+              <div
+                key={index}
+                className="h-3 bg-zinc-800 rounded"
+                style={{
+                  width: `${
+                    index % 3 === 0 ? 72 : index % 3 === 1 ? 88 : 54
+                  }%`,
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="lg:col-span-5 flex flex-col gap-6">
+        <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-lg">
+          <div className="flex justify-between mb-8">
+            <div>
+              <div className="h-3 w-36 bg-zinc-800 rounded mb-3" />
+              <div className="h-8 w-24 bg-zinc-700 rounded" />
             </div>
+            <div className="space-y-2">
+              <div className="h-6 w-20 bg-zinc-700 rounded" />
+              <div className="h-3 w-16 bg-zinc-800 rounded" />
+            </div>
+          </div>
+          <div className="h-8 w-full bg-zinc-800 rounded mb-5" />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="h-20 bg-black border border-zinc-800 rounded" />
+            <div className="h-20 bg-black border border-zinc-800 rounded" />
+            <div className="col-span-2 h-24 bg-black border border-zinc-800 rounded" />
           </div>
         </div>
 
-        {/* RIGHT COLUMN: Analysis & History (5/12) */}
-        <div className="lg:col-span-5 flex flex-col gap-6">
-          {/* A. HERO STATS CARD */}
-          <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-lg">
-            <div className="flex justify-between items-start mb-6">
-              <div>
-                <h2 className="text-zinc-400 text-xs font-bold uppercase tracking-widest mb-1">
-                  Selected Submission
-                </h2>
-                <div className="text-2xl font-mono text-white">
-                  {selected.points}{" "}
-                  <span className="text-zinc-600 text-lg">/ 100</span>
-                </div>
+        <div>
+          <div className="h-4 w-24 bg-zinc-800 rounded mb-3" />
+          <div className="border border-zinc-800 rounded-lg overflow-hidden">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <div
+                key={index}
+                className="h-12 border-b border-zinc-800 bg-zinc-950 flex items-center px-4 gap-4"
+              >
+                <div className="h-3 w-24 bg-zinc-800 rounded" />
+                <div className="h-3 w-16 bg-zinc-800 rounded" />
+                <div className="h-3 w-20 bg-zinc-800 rounded ml-auto" />
               </div>
-              <div className="text-right">
-                <div className="text-white font-mono text-xl">
-                  {selected.runtime_sec}s
-                </div>
-                <div className="text-zinc-500 text-xs">
-                  {selected.memory_kb} KB
-                </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProblemDetailContent({
+  selected,
+  setSelected,
+  codeContent,
+  testCases,
+  loadingCases,
+  showCases,
+  handleToggleCases,
+  processedSubmissions,
+  filter,
+  setFilter,
+  sortKey,
+  setSortKey,
+  sortDir,
+  setSortDir,
+  handleSortChange,
+}: {
+  selected: Submission;
+  setSelected: (submission: Submission) => void;
+  codeContent: string;
+  testCases: TestCase[];
+  loadingCases: boolean;
+  showCases: boolean;
+  handleToggleCases: () => void;
+  processedSubmissions: (Submission & { originalAttemptNum: number })[];
+  filter: FilterType;
+  setFilter: (filter: FilterType) => void;
+  sortKey: SortKey;
+  setSortKey: (sortKey: SortKey) => void;
+  sortDir: "asc" | "desc";
+  setSortDir: (sortDir: "asc" | "desc") => void;
+  handleSortChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+}) {
+  const analysis = selected.ai_analysis;
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      {/* LEFT COLUMN: Code Viewer (7/12) */}
+      <div className="lg:col-span-7 h-full">
+        <div className="lg:sticky lg:top-4 h-fit">
+          <div className="bg-[#1e1e1e] border border-zinc-800 rounded-lg overflow-hidden shadow-2xl">
+            <div className="bg-[#1e1e1e] border-b border-zinc-800 px-4 py-2 flex justify-between items-center">
+              <span className="text-xs font-mono text-zinc-400">
+                {selected.code_path.split("\\").pop()?.split("/").pop()}
+              </span>
+              <span className="text-xs text-zinc-500">
+                {selected.language}
+              </span>
+            </div>
+            <div className="text-sm">
+              <SyntaxHighlighter
+                language={selected.language === "C++" ? "cpp" : "python"}
+                style={vscDarkPlus}
+                showLineNumbers={true}
+                lineNumberStyle={{
+                  color: "#71717a",
+                  minWidth: "3em",
+                  paddingRight: "1em",
+                }}
+                customStyle={{
+                  margin: 0,
+                  background: "#1e1e1e",
+                  height: "calc(82vh)",
+                }}
+              >
+                {codeContent}
+              </SyntaxHighlighter>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* RIGHT COLUMN: Analysis & History (5/12) */}
+      <div className="lg:col-span-5 flex flex-col gap-6">
+        {/* A. HERO STATS CARD */}
+        <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-lg">
+          <div className="flex justify-between items-start mb-6">
+            <div>
+              <h2 className="text-zinc-400 text-xs font-bold uppercase tracking-widest mb-1">
+                Selected Submission
+              </h2>
+              <div className="text-2xl font-mono text-white">
+                {selected.points}{" "}
+                <span className="text-zinc-600 text-lg">/ 100</span>
               </div>
             </div>
+            <div className="text-right">
+              <div className="text-white font-mono text-xl">
+                {selected.runtime_sec}s
+              </div>
+              <div className="text-zinc-500 text-xs">
+                {selected.memory_kb} KB
+              </div>
+            </div>
+          </div>
 
             {/* Result Dots Area */}
             <div className="mb-4">
@@ -462,6 +627,5 @@ export default function ProblemDetailView({
           </div>
         </div>
       </div>
-    </div>
   );
 }

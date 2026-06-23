@@ -1,7 +1,7 @@
 // app/problems/[slug]/page.tsx
 
 import ProblemDetailView from "@/components/ProblemDetailView";
-import { ProblemDetail, Submission } from "@/types";
+import { ProblemDetail } from "@/types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -15,27 +15,16 @@ async function fetchData(url: string) {
   }
 }
 
-// 1. Change the type definition here to Promise
 export default async function ProblemPage({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
-  // 2. Await the params before using them
   const { slug } = await params;
 
-  // Parallel data fetching
-  const problemData: Promise<ProblemDetail> = fetchData(
+  const problem: ProblemDetail | null = await fetchData(
     `${API_BASE}/problems/${slug}`
   );
-  const submissionsData: Promise<Submission[]> = fetchData(
-    `${API_BASE}/problems/${slug}/submissions`
-  );
-
-  const [problem, submissions] = await Promise.all([
-    problemData,
-    submissionsData,
-  ]);
 
   if (!problem) {
     return (
@@ -45,11 +34,9 @@ export default async function ProblemPage({
     );
   }
 
-  const safeSubmissions = submissions || [];
-
   return (
     <main className="min-h-screen bg-black text-zinc-200 px-6">
-      <ProblemDetailView problem={problem} submissions={safeSubmissions} />
+      <ProblemDetailView problem={problem} />
     </main>
   );
 }
