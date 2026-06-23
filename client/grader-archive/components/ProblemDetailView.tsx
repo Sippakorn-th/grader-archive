@@ -66,7 +66,8 @@ export default function ProblemDetailView({
 }) {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [selected, setSelected] = useState<Submission | null>(null);
-  const [codeContent, setCodeContent] = useState<string>("// Loading code...");
+  const [codeContent, setCodeContent] = useState<string>("");
+  const [loadingCode, setLoadingCode] = useState(false);
   const [loadingSubmissions, setLoadingSubmissions] = useState(true);
   const [submissionsError, setSubmissionsError] = useState<string | null>(null);
   const [testCases, setTestCases] = useState<TestCase[]>([]);
@@ -86,7 +87,8 @@ export default function ProblemDetailView({
       setSubmissionsError(null);
       setSubmissions([]);
       setSelected(null);
-      setCodeContent("// Loading code...");
+      setCodeContent("");
+      setLoadingCode(false);
 
       try {
         const res = await fetch(
@@ -147,12 +149,14 @@ export default function ProblemDetailView({
   useEffect(() => {
     if (!selected) {
       if (!loadingSubmissions) setCodeContent("// No code available.");
+      setLoadingCode(false);
       return;
     }
 
     const fetchCode = async () => {
       try {
-        setCodeContent("// Fetching code...");
+        setCodeContent("");
+        setLoadingCode(true);
         if (typeof selected.code_path !== "string" || !selected.code_path) {
           setCodeContent("// No code file available for this submission.");
           return;
@@ -170,6 +174,8 @@ export default function ProblemDetailView({
         setCodeContent(text);
       } catch (err) {
         setCodeContent("// Error: Could not load source code file.");
+      } finally {
+        setLoadingCode(false);
       }
     };
 
@@ -281,6 +287,7 @@ export default function ProblemDetailView({
           selected={selected}
           setSelected={setSelected}
           codeContent={codeContent}
+          loadingCode={loadingCode}
           testCases={testCases}
           loadingCases={loadingCases}
           showCases={showCases}
@@ -364,10 +371,31 @@ function ProblemDetailSkeleton() {
   );
 }
 
+function CodeSkeleton() {
+  const widths = [42, 68, 54, 82];
+
+  return (
+    <div className="h-[82vh] bg-[#1e1e1e] p-4 font-mono text-xs animate-pulse overflow-hidden">
+      {Array.from({ length: 24 }).map((_, index) => (
+        <div key={index} className="flex items-center gap-4 mb-3">
+          <div className="w-8 text-right text-zinc-700">{index + 1}</div>
+          <div
+            className="h-3 rounded bg-zinc-700/60"
+            style={{
+              width: `${widths[index % widths.length]}%`,
+            }}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function ProblemDetailContent({
   selected,
   setSelected,
   codeContent,
+  loadingCode,
   testCases,
   loadingCases,
   showCases,
@@ -384,6 +412,7 @@ function ProblemDetailContent({
   selected: Submission;
   setSelected: (submission: Submission) => void;
   codeContent: string;
+  loadingCode: boolean;
   testCases: TestCase[];
   loadingCases: boolean;
   showCases: boolean;
@@ -433,23 +462,27 @@ function ProblemDetailContent({
               </button>
             </div>
             <div className="text-sm">
-              <SyntaxHighlighter
-                language={getSyntaxLanguage(selected.language)}
-                style={vscDarkPlus}
-                showLineNumbers={true}
-                lineNumberStyle={{
-                  color: "#71717a",
-                  minWidth: "3em",
-                  paddingRight: "1em",
-                }}
-                customStyle={{
-                  margin: 0,
-                  background: "#1e1e1e",
-                  height: "calc(82vh)",
-                }}
-              >
-                {codeContent}
-              </SyntaxHighlighter>
+              {loadingCode ? (
+                <CodeSkeleton />
+              ) : (
+                <SyntaxHighlighter
+                  language={getSyntaxLanguage(selected.language)}
+                  style={vscDarkPlus}
+                  showLineNumbers={true}
+                  lineNumberStyle={{
+                    color: "#71717a",
+                    minWidth: "3em",
+                    paddingRight: "1em",
+                  }}
+                  customStyle={{
+                    margin: 0,
+                    background: "#1e1e1e",
+                    height: "calc(82vh)",
+                  }}
+                >
+                  {codeContent}
+                </SyntaxHighlighter>
+              )}
             </div>
           </div>
         </div>
