@@ -42,16 +42,16 @@ export default function ArchiveDashboard({
   return (
     <div className="max-w-4xl mx-auto w-full">
       {/* HEADER SECTION */}
-      <div className="pt-10 flex justify-between items-end mb-2">
+      <div className="pt-8 sm:pt-10 flex justify-between items-end mb-2">
         <div>
-          <h1 className="text-5xl font-black tracking-tighter text-white">
+          <h1 className="text-4xl sm:text-5xl font-black tracking-tighter text-white">
             GRADER<span className="text-zinc-600">ARCHIVE</span>
           </h1>
         </div>
       </div>
 
       {/* CONTROLS SECTION */}
-      <div className="sticky top-0 z-20 bg-black/80 backdrop-blur-md py-4 border-b border-zinc-800 flex flex-col md:flex-row gap-4 justify-between items-end md:items-center">
+      <div className="sticky top-0 z-20 bg-black/80 backdrop-blur-md py-4 border-b border-zinc-800 flex flex-col md:flex-row gap-3 md:gap-4 justify-between items-stretch md:items-center">
         {/* Search */}
         <div className="relative w-full md:w-64">
           <input
@@ -64,15 +64,15 @@ export default function ArchiveDashboard({
         </div>
 
         {/* Problem Count */}
-        <div className="flex-1 text-zinc-500 text-sm pl-2">
+        <div className="w-full md:w-auto flex-1 text-zinc-500 text-sm pl-0 md:pl-2">
           {filteredProblems.length} problems found
         </div>
 
         {/* ACTION BUTTONS */}
-        <div className="flex gap-3 text-sm items-center">
+        <div className="grid grid-cols-2 md:flex gap-3 text-sm items-center w-full md:w-auto">
           <button
             onClick={() => setHideUnsolved(!hideUnsolved)}
-            className={`px-3 py-2 border transition-colors ${
+            className={`px-3 py-2 border transition-colors whitespace-nowrap ${
               hideUnsolved
                 ? "bg-zinc-100 text-black border-white"
                 : "bg-black text-zinc-500 border-zinc-800 hover:border-zinc-600"
@@ -84,7 +84,7 @@ export default function ArchiveDashboard({
           <select
             value={selectedCourse}
             onChange={(e) => setSelectedCourse(e.target.value)}
-            className="bg-black text-zinc-300 border border-zinc-800 px-3 py-2 focus:outline-none hover:border-zinc-600 cursor-pointer"
+            className="w-full bg-black text-zinc-300 border border-zinc-800 px-3 py-2 focus:outline-none hover:border-zinc-600 cursor-pointer"
           >
             {COURSES.map((c) => (
               <option key={c} value={c}>

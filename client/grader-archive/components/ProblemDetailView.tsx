@@ -100,7 +100,7 @@ export default function ProblemDetailView({
         const safeSubmissions = Array.isArray(data) ? data : [];
         setSubmissions(safeSubmissions);
         setSelected(safeSubmissions[0] || null);
-      } catch (error) {
+      } catch {
         if (!isActive) return;
         setSubmissionsError("Could not load submissions.");
       } finally {
@@ -172,7 +172,7 @@ export default function ProblemDetailView({
         if (!res.ok) throw new Error("Failed to load code");
         const text = await res.text();
         setCodeContent(text);
-      } catch (err) {
+      } catch {
         setCodeContent("// Error: Could not load source code file.");
       } finally {
         setLoadingCode(false);
@@ -439,7 +439,7 @@ function ProblemDetailContent({
       await navigator.clipboard.writeText(codeContent);
       setCopyLabel("Copied");
       window.setTimeout(() => setCopyLabel("Copy"), 1600);
-    } catch (error) {
+    } catch {
       setCopyLabel("Failed");
       window.setTimeout(() => setCopyLabel("Copy"), 1600);
     }

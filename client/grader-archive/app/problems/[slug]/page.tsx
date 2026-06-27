@@ -10,7 +10,7 @@ async function fetchData(url: string) {
     const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) return null;
     return res.json();
-  } catch (error) {
+  } catch {
     return null;
   }
 }

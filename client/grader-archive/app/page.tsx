@@ -25,7 +25,7 @@ export default async function Page() {
   const problems = await getProblems();
 
   return (
-    <main className="min-h-screen bg-black text-zinc-200 px-6 pb-20">
+    <main className="min-h-screen bg-black text-zinc-200 px-4 sm:px-6 pb-20">
       <ArchiveDashboard initialData={problems} />
     </main>
   );
