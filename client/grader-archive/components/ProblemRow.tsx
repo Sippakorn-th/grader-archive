@@ -43,7 +43,7 @@ export default function ProblemRow({ problem }: { problem: Problem }) {
       {/* Left: Course Tag & Name */}
       <div className="flex items-center gap-4 flex-1">
         <span
-          className={`text-[10px] font-bold tracking-wider text-zinc-500 bg-zinc-950 border border-zinc-800 px-2 py-1 rounded w-16 text-center shrink-0 transition-colors duration-200 ${courseBoxHoverClass}`}
+          className={`text-[10px] font-bold tracking-wider text-zinc-500 bg-zinc-950 border border-zinc-800 px-2 py-1 rounded w-16 text-center shrink-0 transition-colors duration-100 ${courseBoxHoverClass}`}
         >
           {shortCourse}
         </span>
